@@ -28,7 +28,7 @@ class Modbus(object):
     def address_hex(self):
         return hex(self._address)[2:].upper().zfill(2)
     @staticmethod
-    def crc_modbus(data : bytes) -> int:
+    def calculate_CRC(data : list[int]) -> int:
         
         crc_table = [
             0x0000, 0x8005, 0x800F, 0x000A, 0x801B, 0x001E, 0x0014, 0x8011, 0x8033, 0x0036, 0x003C, 0x8039, 0x0028, 0x802D, 0x8027, 0x0022,
@@ -50,11 +50,12 @@ class Modbus(object):
         ]
 
         crc = 0xFFFF    # initial CRC value
-        for i in range(len(data)):
-            crc = crc_table[(crc >> 8) ^ data[i]] ^ (crc << 8)
+        test = len(data)
+        for i in range(0,len(data)):
+            crc = (crc_table[(crc >> 8) ^ data[i]] ^ (crc << 8)) & 0xFFFF
 
         return (crc & 0xFFFF)
-    
+
     def Read_Coils(self, address, quantity) -> bytearray:
         # Read Coils command: 0x01
         command = bytearray([self.address, 0x01, address >> 8, address & 0xFF, quantity >> 8, quantity & 0xFF])
@@ -124,7 +125,9 @@ class Modbus(object):
         # Write Multiple Registers command: 0x10
         quantity = len(values) // 2
         command = bytearray([self.address, 0x10, address >> 8, address & 0xFF, quantity >> 8, quantity & 0xFF])
-        command.extend(values)
+
+        for i in range(0, len(values)):
+            command.extend([values[i] >> 8, values[i] & 0xFF])
         crc = self.calculate_CRC(command)
 
         command.extend([crc >> 8, crc & 0xFF])
@@ -132,11 +135,31 @@ class Modbus(object):
         return command
     
     def Read_Write_Multiple_Registers(self, address, quantity, values : list[int]) -> bytearray:
-        # Read/Write Multiple Registers command: 0x17
+        """
+        Read/Write Multiple Registers command: 0x17
+        """
         command = bytearray([self.address, 0x17, address >> 8, address & 0xFF, quantity >> 8, quantity & 0xFF])
-        command.extend(values)
+        for i in range(0, len(values)):
+            command.extend([values[i] >> 8, values[i] & 0xFF])
         crc = self.calculate_CRC(command)
 
         command.extend([crc >> 8, crc & 0xFF])
 
         return command
+    
+    def Check_CRC(self, data) -> bool:
+        """
+        Verifies the integrity of the given data using CRC.
+
+        This function calculates the CRC of the provided data and checks if it matches
+        the expected CRC value, indicating data integrity.
+
+        Parameters:
+        data (list[int]): The data to be checked, represented as a list of integers.
+
+        Returns:
+        bool: True if the calculated CRC matches the expected value, indicating the data is intact;
+              False otherwise.
+        """
+        crc_calculated = self.calculate_CRC(data)
+        return crc_calculated == 0
