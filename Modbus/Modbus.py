@@ -20,20 +20,20 @@ class Modbus():
                 except KeyError as e:
                     raise KeyError(f"Modbus mode {mode} requires port and baudrate.")
 
-                # optional settings
+                self.__conn = SerialPort(self.__port, self.__baudrate)
+
+                                # optional settings
                 if "parity" in args.keys():
-                    self.__parity = args["parity"]
+                    self.__conn.SetParity(args["parity"])
 
                 if "stopbits" in args.keys():
-                    self.__stopbits = args["stopbits"]
+                    self.__conn.SetStopbits(args["stopbits"])
 
                 if "bytesize" in args.keys():
-                    self.__bytesize = args["bytesize"]
+                    self.__conn.SetBytesize(args["bytesize"])
 
                 if "timeout" in args.keys():
-                    self.__timeout = args["timeout"]
-
-                self.__conn = SerialPort(self.__port, self.__baudrate)
+                    self.__conn.SetReadTimeout(args["timeout"])
 
             case _:
                 raise NotImplementedError(f"Modbus mode {mode} is not implemented.")
