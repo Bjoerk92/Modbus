@@ -52,3 +52,8 @@ class Modbus():
 
     def openConnection(self):
         self.__conn.open()
+
+    def closeConnection(self):
+        self.__conn.close()
+
+    
